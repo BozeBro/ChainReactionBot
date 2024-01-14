@@ -1,0 +1,7 @@
+[submodule "websocketpp"]
+	path = websocketpp
+	url = git@github.com:zaphoyd/websocketpp.git
+
+[submodule "json"]
+	path = json
+	url = git@github.com:nlohmann/json.git
