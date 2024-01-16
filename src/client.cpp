@@ -32,7 +32,6 @@ void on_message(client *c, websocketpp::connection_hdl hdl, message_ptr msg) {
   std::cout << "on_message called with hdl: " << hdl.lock().get()
             << " and message: " << msg->get_payload() << std::endl;
   json data = json::parse(msg->get_payload());
-  cout << data["color"] << '\n';
 
   websocketpp::lib::error_code ec;
   cout << websocketpp::frame::opcode::text << '\n';
@@ -41,6 +40,7 @@ void on_message(client *c, websocketpp::connection_hdl hdl, message_ptr msg) {
     std::cout << "Echo failed because: " << ec.message() << std::endl;
   }
 }
+// TODO: Look later about how this tls init actually works
 static context_ptr on_tls_init() {
   // establishes a SSL connection
   context_ptr ctx = std::make_shared<boost::asio::ssl::context>(
@@ -98,9 +98,7 @@ string BotClient::connect() {
   std::cout << "PATH IS : " << wsPath.str() << std::endl;
 
   websocketpp::lib::error_code ec;
-  // client::connection_ptr con = m_webSocket.get_connection(wsPath.str(), ec);
-  m_con = m_webSocket.get_connection(wsPath.str(), ec);
-  // m_con = con;
+  client::connection_ptr con = m_webSocket.get_connection(wsPath.str(), ec);
   if (ec) {
     stringstream err;
     err << "Coult not create connection because: " << ec.message() << std::endl;
@@ -108,7 +106,7 @@ string BotClient::connect() {
   }
   // Note that connect here only requests a connection. No network messages are
   // exchanged until the event loop starts running in the next line.
-  m_webSocket.connect(m_con);
+  m_webSocket.connect(con);
 
   // Start the ASIO io_service run loop
   // this will cause a single connection to be made to the server. c.run()

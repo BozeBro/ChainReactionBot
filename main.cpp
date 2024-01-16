@@ -35,18 +35,6 @@ int main(int argc, char *argv[]) {
     return 1;
   }
   BotClient bot(argv[1], argv[2]);
-
-  // client c;
-  //
-  // std::string uri = "ws://localhost:9002";
-  //
-  //
-  // string httpUri = "http://localhost:3000";
-  // uri = "ws://localhost:3000/ws/ddRTJKEL";
-  //
-  // httplib::Client cli(httpUri);
-  // cli.Get("/game/ddRTJKEL");
-
   try {
     string err = bot.connect();
     cout << err;
