@@ -1,6 +1,3 @@
 [submodule "websocketpp"]
 	path = ext/websocketpp
 	url = git@github.com:zaphoyd/websocketpp.git
-[submodule "ext/websocketpp"]
-	path = ext/websocketpp
-	url = git@github.com:zaphoyd/websocketpp.git
