@@ -1,7 +1,6 @@
 [submodule "websocketpp"]
-	path = websocketpp
+	path = ext/websocketpp
 	url = git@github.com:zaphoyd/websocketpp.git
-
-[submodule "json"]
-	path = json
-	url = git@github.com:nlohmann/json.git
+[submodule "ext/websocketpp"]
+	path = ext/websocketpp
+	url = git@github.com:zaphoyd/websocketpp.git
