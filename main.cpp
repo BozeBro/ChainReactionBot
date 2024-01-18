@@ -27,8 +27,8 @@
 #include "client.hpp"
 
 #include <iostream>
-
 int main(int argc, char *argv[]) {
+
   // Create a client endpoint
   if (argc != 3) {
     std::cout << "Need 3 arguments, ./main host id";

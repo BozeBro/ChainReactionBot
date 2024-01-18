@@ -1,7 +1,6 @@
 #pragma once
 
 #include "httplib.h"
-#include "websocketpp/common/connection_hdl.hpp"
 
 #include <string>
 #include <websocketpp/client.hpp>
@@ -20,11 +19,9 @@ using client = websocketpp::client<websocketpp::config::asio_tls_client>;
 #ifdef DEBUG
 using client = websocketpp::client<websocketpp::config::asio_client>;
 #endif // DEBUG
-
-// pull out the type of messages sent by our config
-typedef websocketpp::config::asio_client::message_type::ptr message_ptr;
-
-void on_message(client *c, websocketpp::connection_hdl hdl, message_ptr msg);
+namespace httplib {
+class Client;
+}
 
 class BotClient {
 public:

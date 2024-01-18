@@ -26,6 +26,8 @@ string http_from_host(string host) noexcept {
 }
 } // namespace
 using context_ptr = std::shared_ptr<boost::asio::ssl::context>;
+// pull out the type of messages sent by our config
+using message_ptr = websocketpp::config::asio_client::message_type::ptr;
 // This message handler will be invoked once for each incoming message. It
 // prints the message and then sends a copy of the message back to the server.
 void on_message(client *c, websocketpp::connection_hdl hdl, message_ptr msg) {
