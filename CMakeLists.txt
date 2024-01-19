@@ -1,22 +1,30 @@
 cmake_minimum_required(VERSION 3.27)
 project(Monte)
 
+
 set(CMAKE_EXPORT_COMPILE_COMMANDS 1)
 set(CMAKE_INSTALL_PREFIX ${CMAKE_BINARY_DIR})
-set(BOOST /opt/homebrew/Cellar/boost/1.83.0/lib)
-# set(OPENSSL /opt/homebrew/Cellar/openssl@3/3.2.0_1/lib/libssl.3.dylib)
-# /opt/homebrew/Cellar/boost/1.83.0/include/
-add_executable(main main.cpp src/client.cpp src/montecarlo.cpp)
-add_executable(test test.cpp src/montecarlo.cpp)
-target_include_directories(main PRIVATE ${CMAKE_SOURCE_DIR}/ext/websocketpp include/)
-target_include_directories(test PRIVATE include/)
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_BUILD_TYPE Debug)
+if (prod)
+  add_compile_definitions(PROD)
+else()
+  add_compile_definitions(DEBUG)
+endif()
 
-find_package(nlohmann_json 3.2.0 REQUIRED)
-find_package(OpenSSL REQUIRED)
-target_link_libraries(main PRIVATE ${BOOST}/libboost_system-mt.a ${BOOST}/libboost_coroutine.a ${OPENSSL} nlohmann_json::nlohmann_json OpenSSL::SSL)
-target_compile_options(main BEFORE PRIVATE --std=c++17)
-target_compile_definitions(main PRIVATE DEBUG=1)
+if (Test)
+  add_subdirectory(src)
+  add_subdirectory(tests)
+  add_dependencies(test chain)
+  target_link_libraries(test PRIVATE chain)
+else()
+  add_executable(main test.cpp)
+  target_include_directories(main PRIVATE include/)
 
-target_compile_options(test BEFORE PRIVATE --std=c++17)
+  add_subdirectory(src)
+  add_dependencies(main chain)
 
-# set_property(TARGET main PROPERTY CXX_STANDARD 17)
+  target_link_libraries(main chain)
+endif()
+
+
