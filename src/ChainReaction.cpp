@@ -96,7 +96,7 @@ ChainReaction ChainReaction::nextState(Move move) const {
       }
       if (cnt > 2 && util::is_win(next_grid, player_color)) {
         return ChainReaction(m_width, m_height, m_players, next_grid,
-                             next_turn(), cnt);
+                             next_turn(), cnt, player_color);
       }
     }
     que = nextQue;
@@ -105,20 +105,21 @@ ChainReaction ChainReaction::nextState(Move move) const {
                        cnt);
 }
 
-bool ChainReaction::is_win(std::string_view color) const {
-  int enemy_cnt = 0;
-  int my_cnt = 0;
-  for (const State &sq : m_grid) {
-    if (color == sq.color) {
-      my_cnt += sq.circles;
-    } else {
-      enemy_cnt += sq.circles;
-    }
+std::string_view ChainReaction::get_winner() const {
+  for (auto player : m_players) {
+    if (is_win(player))
+      return player;
   }
-  return m_cnt > 2 && enemy_cnt == 0;
+  return "";
+}
+
+bool ChainReaction::is_win(std::string_view color) const {
+  return m_winner.has_value() && m_winner.value() == color;
 }
 
 std::vector<Move> ChainReaction::legalMoves(std::string_view color) const {
+  if (!get_winner().empty())
+    return {};
   std::vector<Move> moves;
   for (int i = 0; i < m_grid.size(); i++) {
     const State &sq = m_grid[i];

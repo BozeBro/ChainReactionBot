@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.27)
 project(chain)
 
-  add_library(chain ChainReaction.cpp montetree.cpp)
+  add_library(chain ChainReaction.cpp)
   add_library(client client.cpp)
   target_include_directories(chain PRIVATE ../include)
 
