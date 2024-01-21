@@ -15,15 +15,18 @@ int main(int argc, char *argv[]) {
   ChainReaction c(width, height, {"Blue", "Red"});
   auto game = MonteTree<ChainReaction>::create(c);
   game->run();
-  std::cout << game->get_score() << game->get_state().get_player() << '\n';
+  std::cout << game->get_score().value() << " "
+            << game->get_state().get_player() << '\n';
   std::queue<ChainReaction> que;
   int rwin = 0;
   int bwin = 0;
+  int mcount = 0;
   que.push(c);
   while (!que.empty()) {
     ChainReaction top = que.front();
     que.pop();
     for (auto move : top.legalMoves(top.get_player())) {
+      mcount++;
       ChainReaction nxt = top.nextState(move);
       auto winner = nxt.is_win(top.get_player());
       assert(nxt.is_win(top.get_player()) ==
@@ -39,7 +42,8 @@ int main(int argc, char *argv[]) {
       que.push(nxt);
     }
   }
-  std::cout << "Red WIN: " << rwin << " Blue Win: " << bwin;
+  std::cout << "Red WIN: " << rwin << " Blue Win: " << bwin << '\n';
+  std::cout << mcount << '\n';
 
   return 0;
 }

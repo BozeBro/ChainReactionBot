@@ -1,4 +1,5 @@
 #pragma once
+#include <algorithm>
 #include <cassert>
 #include <cmath>
 #include <ctime>
@@ -11,7 +12,9 @@
 #include <utility>
 #include <vector>
 
-static constexpr double C = 1.4142135;
+static constexpr double C = 2;
+static constexpr double D = 1;
+static int n = 0;
 
 // Rationale
 // https://stackoverflow.com/questions/45507041/how-to-check-if-weak-ptr-is-empty-non-assigned
@@ -32,10 +35,9 @@ class MonteTree : public std::enable_shared_from_this<MonteTree<Game>> {
                                           .begin())>;
 
 private:
-  MonteTree(const Game &state)
-      : m_state(state), m_player(state.get_player()), m_parent() {}
+  MonteTree(const Game &state) : m_state(state) {}
   MonteTree(const Game &state, std::weak_ptr<Node> parent)
-      : m_state(state), m_player(state.get_player()), m_parent(parent) {}
+      : m_state(state), m_parent(parent) {}
 
 public:
   template <typename... Args>
@@ -69,11 +71,14 @@ public:
   void backpropogate(std::string_view winner) {
     for (std::weak_ptr<MonteTree> cur = this->weak_from_this();
          !is_uninitialized(cur) && !cur.expired(); cur = cur.lock()->m_parent) {
+
       auto shared_cur = cur.lock();
-      if (shared_cur->m_player == winner) {
+      shared_cur->bt++;
+      if (shared_cur->m_state.get_player() == winner) {
         shared_cur->m_wins++;
       }
-      shared_cur->m_value = shared_cur->generate_score();
+      shared_cur->set_score(shared_cur->generate_score());
+      shared_cur->set_select_score(shared_cur->generate_select_score());
     }
   }
   std::weak_ptr<Node> select() {
@@ -87,7 +92,7 @@ public:
         return cur;
       }
 
-      double score = cur->m_children[0]->m_value.value();
+      double score = cur->m_children[0]->get_select_score().value();
       int ind = 0;
       for (int i = 1; i < cur->m_children.size(); i++) {
         if (cur->m_children[i]->is_leaf() &&
@@ -96,7 +101,7 @@ public:
           cur->m_num_simuls++;
           return cur;
         }
-        double cur_score = cur->m_children[i]->m_value.value();
+        double cur_score = cur->m_children[i]->get_select_score().value();
         if (cur_score > score) {
           score = cur_score;
           ind = i;
@@ -114,60 +119,98 @@ public:
     for (M move : moves) {
       const Game &game = m_state.nextState(move);
       auto child = Node::create(game, this->weak_from_this());
-      assert(child->is_leaf() && !child->m_value.has_value());
+      assert(child->is_leaf() && !child->m_select_score.has_value());
       m_children.push_back(child);
     }
   }
 
   void run() {
-    for (int i = 0; i < 1000000; i++) {
+    for (int i = 0; i < 100000; i++) {
       std::weak_ptr<Node> weak_leaf = select();
       assert(!weak_leaf.expired());
       std::shared_ptr<Node> leaf = weak_leaf.lock();
       assert(leaf->is_leaf());
       assert(leaf->m_num_simuls > 0);
+      // in terminal state
+      if (!leaf->m_state.get_winner().empty()) {
+        leaf->backpropogate(leaf->m_state.get_winner());
+        continue;
+      }
       if (leaf->m_num_simuls == 1) {
-        auto winner = leaf->simulate();
-        leaf->backpropogate(winner);
+        leaf->backpropogate(leaf->simulate());
+        continue;
+      }
+      assert(leaf->m_select_score.has_value());
+      assert(leaf->m_state.get_winner().empty());
+      assert(leaf->m_children.size() == 0);
+      leaf->expand();
+      if (leaf->m_children.size() > 0) {
+        auto child = leaf->m_children[0];
+        assert(child != nullptr);
+        auto winner = child->simulate();
+        child->m_num_simuls++;
+        child->backpropogate(winner);
       } else {
-        assert(leaf->m_value.has_value());
-        leaf->expand();
-        if (leaf->m_children.size() > 0) {
-          auto child = leaf->m_children[0];
-          assert(child != nullptr);
-          auto winner = child->simulate();
-          child->m_num_simuls++;
-          child->backpropogate(winner);
-        } else {
-          assert(!leaf->m_state.get_winner().empty());
-
-          leaf->backpropogate(leaf->m_state.get_winner());
-        }
+        assert(false);
       }
     }
     return;
   }
-  double get_score() const { return m_score.value_or(-1); }
+  std::optional<double> get_score() const { return m_score; }
+  std::optional<double> get_select_score() const { return m_select_score; }
   Game get_state() const { return m_state; }
+  void set_score(double score) { m_score = score; }
+  void set_select_score(double score) { m_select_score = score; }
 
 private:
-  double generate_score() {
+  double generate_score() const {
+    double wins = static_cast<double>(m_wins);
+    if (m_children.size() == 0) {
+      assert(m_wins == 1 || m_wins == 0);
+      return m_wins;
+    }
+
+    std::optional<double> ratio = std::nullopt;
+    bool is_init = is_uninitialized(m_parent);
+    for (int i = 0; i < m_children.size(); i++) {
+      auto child = m_children[i];
+
+      if (!child->get_score().has_value()) {
+        return 1 - ratio.value();
+      }
+      if (!ratio.has_value())
+        ratio = child->get_score().value();
+      else
+        ratio = std::min(ratio.value(), child->get_score().value());
+    }
+    return 1 - ratio.value();
+    // if (is_uninitialized(m_parent)) {
+    //   return wins / num_visit;
+    // }
+    // return wins / num_visit +
+    //        C * sqrt(log(m_parent.lock()->m_num_simuls) / num_visit);
+  }
+  double generate_select_score() const {
+    if (is_uninitialized(m_parent)) {
+      assert(m_score.has_value());
+      return D * m_score.value();
+    }
     double wins = static_cast<double>(m_wins);
     double num_visit = static_cast<double>(m_num_simuls);
-    if (is_uninitialized(m_parent)) {
-      return wins / num_visit;
-    }
-    return wins / num_visit +
-           C * sqrt(log(m_parent.lock()->m_num_simuls) / num_visit);
+    assert(num_visit > 0);
+    assert(m_score.has_value());
+    double simul = log(m_parent.lock()->m_num_simuls);
+    return D * m_score.value() + C * sqrt(simul / num_visit);
   }
+
   bool is_leaf() { return m_children.empty(); }
 
   int m_wins = 0;
   int m_num_simuls = 0;
   const Game m_state;
-  std::string_view m_player;
   std::weak_ptr<MonteTree> m_parent;
-  std::optional<double> m_value = std::nullopt;
+  std::optional<double> m_select_score = std::nullopt;
   std::optional<double> m_score = std::nullopt;
   std::vector<std::shared_ptr<MonteTree>> m_children;
+  int bt = 0;
 };
