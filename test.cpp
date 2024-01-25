@@ -17,43 +17,34 @@ int main(int argc, char *argv[]) {
   int width = std::stoi(argv[1]);
   int height = std::stoi(argv[2]);
   std::vector<std::string_view> players{"Red", "Blue"};
-  auto m = MCTS<ChainReaction>(nullptr, width, height, players);
-  ChainReaction c(width, height, players);
+  auto agent_game = new MCTS<ChainReaction>(nullptr, width, height, players);
+  agent_game->run();
+  std::cout << (*agent_game) << '\n';
 
-  m.run();
-  print(&m);
-  std::cout << m << '\n';
-  std::cout << m.get_score() << '\n';
-
-  // std::cout << game->get_score().value() << " "
-  //           << game->get_state().get_player() << '\n';
-  std::queue<ChainReaction> que;
-  int rwin = 0;
-  int bwin = 0;
-  int mcount = 0;
-  que.push(c);
-  while (!que.empty()) {
-    ChainReaction top = que.front();
-    que.pop();
-    for (auto move : top.legalMoves(top.get_player())) {
-      mcount++;
-      ChainReaction nxt = top.nextState(move);
-      auto winner = nxt.is_win(top.get_player());
-      assert(nxt.is_win(top.get_player()) ==
-             (nxt.get_winner() == top.get_player()));
-      if (!nxt.get_winner().has_value()) {
-        if (nxt.get_winner() == "Red") {
-          rwin++;
-        } else {
-          bwin++;
-        }
-        continue;
-      }
-      que.push(nxt);
+  auto m = MonteAgent<ChainReaction>(agent_game);
+  bool turn = false;
+  ChainReaction game(width, height, players);
+  std::cout << game << "\n";
+  while (!game.get_winner().has_value()) {
+    if (turn) {
+      std::cout << "It's Your turn!\n";
+      int x;
+      int y;
+      std::cin >> x;
+      std::cin >> y;
+      Move move{x, y, game.get_player()};
+      m.move(move);
+      game = game.nextState(move);
+    } else {
+      std::cout << "It's the bot's turn!\n";
+      auto move = m.get_move();
+      m.move(move);
+      game = game.nextState(move);
     }
+    std::cout << game << "\n";
+    turn = !turn;
   }
-  std::cout << "Red WIN: " << rwin << " Blue Win: " << bwin << '\n';
-  std::cout << mcount << '\n';
+  std::cout << "THE WINNER IS " << game.get_winner().value() << '\n';
 
   return 0;
 }

@@ -1,11 +1,11 @@
 #pragma once
 
-#include "montetree.hpp"
 #include <algorithm>
 #include <assert.h>
 #include <cmath>
 #include <cstdint>
 #include <functional>
+#include <iostream>
 #include <optional>
 #include <queue>
 #include <random>
@@ -14,36 +14,50 @@
 #include <utility>
 #include <vector>
 
-// TODO: Consider making children a shared_ptr so we aren't accidently deleting
-// children
+static constexpr double C = 2;
+
+/* Need parent to have
+ * legalMoves -> vector
+ * get_winner
+ * get_player
+ * nextState
+ */
 template <typename Game> class MCTS : public Game {
 
-  friend Game;
+public:
   using Node = MCTS<Game>;
   using M = typename std::decay_t<
       decltype(*std::declval<Game>().legalMoves().begin())>;
 
-public:
+  static_assert(std::is_const_v<decltype(std::declval<Game>().nextState(
+                    std::declval<M>()))>,
+                "Next state must return a const state");
+  static_assert(
+      std::is_same_v<const Game, decltype(std::declval<Game>().nextState(
+                                     std::declval<M>()))>,
+      "Next state must return a state with the same state as the caller");
+
   template <typename... Args>
   MCTS(MCTS *parent, Args &&...args)
       : Game(std::forward<Args>(args)...), m_parent(parent),
         m_untried_moves(static_cast<Game *>(this)->legalMoves()) {}
 
   ~MCTS() {
+    // TODO: Consider making children a shared_ptr so we aren't accidently
+    // deleting children
     for (auto child : m_children)
       delete child;
   }
 
 public:
-  friend void print(MCTS<Game> *const tree) {
-    using Node = MCTS<Game>;
-    std::queue<Node *> que;
+  friend void print(Node const *const tree) {
+    std::queue<Node const *> que;
     que.push(tree);
     while (!que.empty()) {
-      std::queue<Node *> nxt;
+      std::queue<Node const *> nxt;
       std::cout << "********\n";
       while (!que.empty()) {
-        Node *top = que.front();
+        Node const *top = que.front();
         que.pop();
         std::cout << (*top) << " ";
         for (Node *child : top->m_children) {
@@ -66,12 +80,11 @@ public:
     return stream;
   }
   void run() {
-    for (int i = 0; i < 1000; i++) {
+    for (int i = 0; i < 10000 && !m_final_val.has_value(); i++) {
       auto leaf = selection();
       auto winner = leaf->simulate();
       leaf->backpropagate(winner);
     }
-    std::cout << this->m_score << '\n';
     return;
   }
 
@@ -111,10 +124,9 @@ private:
     cur->incr_simul();
     return cur;
   }
-  MCTS *expand() {
-    assert(!m_untried_moves.empty());
-    M move = m_untried_moves.back();
-    Game *const game = static_cast<Game *>(this);
+  MCTS *expand(int ind) {
+    M move = m_untried_moves[ind];
+    Game const *const game = static_cast<Game *>(this);
     MCTS *child = new MCTS(this, game->nextState(move));
     assert(child->get_winner() != child->get_player());
     if (child->get_winner().has_value()) {
@@ -123,12 +135,14 @@ private:
 
     m_children.push_back(child);
     m_moves.push_back(move);
-    m_untried_moves.pop_back();
+    m_untried_moves.erase(m_untried_moves.begin() + ind,
+                          m_untried_moves.begin() + ind + 1);
     assert(child);
     return child;
   }
+  MCTS *expand() { return expand(m_untried_moves.size() - 1); }
   std::string_view simulate() {
-    if (is_final_state()) {
+    if (this->is_final_state()) {
       return m_final_val.value();
     }
     srand(time(NULL));
@@ -137,10 +151,11 @@ private:
     Game cur = static_cast<Game>(*this);
     assert(!cur.get_winner().has_value() && !this->is_final_state());
     while (!cur.get_winner().has_value()) {
-      auto moves(cur.legalMoves());
+      auto moves = cur.legalMoves();
       std::uniform_int_distribution<std::size_t> distribution(0,
                                                               moves.size() - 1);
-      cur = cur.nextState(moves[distribution(generator)]);
+      M move = moves[distribution(generator)];
+      cur = cur.nextState(move);
     }
     return cur.get_winner().value();
   }
@@ -176,6 +191,46 @@ private:
   }
 
 public:
+  MCTS *play_move(M move) {
+    for (int i = 0; i < m_moves.size(); i++) {
+      if (m_moves[i] == move) {
+        return m_children[i];
+      }
+    }
+    for (int i = 0; i < m_untried_moves.size(); i++) {
+      if (m_untried_moves[i] == move) {
+        return expand(i);
+      }
+    }
+    return nullptr;
+  }
+  M get_best() {
+    if (m_children.size() == 0) {
+      assert(!m_untried_moves.empty());
+      M move = m_untried_moves[0];
+      this->expand();
+      return move;
+    }
+    M move = m_moves[0];
+    int ind = 0;
+    double score = m_children[0]->get_score();
+    if (m_children[0]->is_final_state() &&
+        m_children[0]->get_winner() == this->get_player()) {
+      return m_moves[0];
+    }
+    for (int i = 1; i < m_children.size(); i++) {
+      if (m_children[i]->is_final_state() &&
+          m_children[i]->get_winner() == this->get_player()) {
+        return m_moves[i];
+      }
+      if (m_children[i]->get_score() < score) {
+        ind = i;
+        move = m_moves[i];
+        score = m_children[i]->get_score();
+      }
+    }
+    return move;
+  }
   double get_score() const {
     double wins = static_cast<double>(m_score);
     double simuls = static_cast<double>(m_simuls);
@@ -199,4 +254,19 @@ private:
   int m_score = 0;
   uint32_t m_simuls = 0;
   std::optional<std::string_view> m_final_val;
+};
+
+template <typename Game> class MonteAgent {
+  using Node = MCTS<Game>;
+  using M = typename std::decay_t<
+      decltype(*std::declval<Game>().legalMoves().begin())>;
+
+public:
+  MonteAgent(Node *agent) : m_agent(agent) {}
+
+  void move(M move) { m_agent = m_agent->play_move(move); }
+  typename Node::M get_move() { return m_agent->get_best(); }
+
+private:
+  Node *m_agent;
 };

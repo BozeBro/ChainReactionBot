@@ -72,7 +72,7 @@ bool ChainReaction::handle_sq(std::vector<State> &grid, int ind,
   }
 }
 
-ChainReaction ChainReaction::nextState(Move move) const {
+const ChainReaction ChainReaction::nextState(Move move) const {
 
   assert(0 <= move.x && move.x < m_width);
   assert(0 <= move.y && move.y < m_height);
@@ -153,4 +153,8 @@ std::ostream &operator<<(std::ostream &stream, const State &state) {
 std::ostream &operator<<(std::ostream &stream, const Move &move) {
   stream << "(" << move.x << " " << move.y << ")";
   return stream;
+}
+
+bool operator==(const Move &a, const Move &b) {
+  return a.x == b.x && a.y == b.y && a.color == b.color;
 }
