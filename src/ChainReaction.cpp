@@ -3,6 +3,7 @@
 
 #include <assert.h>
 #include <cstdint>
+#include <optional>
 #include <ostream>
 #include <sstream>
 #include <string_view>
@@ -105,20 +106,23 @@ ChainReaction ChainReaction::nextState(Move move) const {
                        cnt);
 }
 
-std::string_view ChainReaction::get_winner() const {
+std::optional<std::string_view> ChainReaction::get_winner() const {
   for (auto player : m_players) {
     if (is_win(player))
       return player;
   }
-  return "";
+  return std::nullopt;
 }
 
 bool ChainReaction::is_win(std::string_view color) const {
   return m_winner.has_value() && m_winner.value() == color;
 }
 
+std::vector<Move> ChainReaction::legalMoves() const {
+  return legalMoves(get_player());
+}
 std::vector<Move> ChainReaction::legalMoves(std::string_view color) const {
-  if (!get_winner().empty())
+  if (get_winner().has_value())
     return {};
   std::vector<Move> moves;
   for (int i = 0; i < m_grid.size(); i++) {

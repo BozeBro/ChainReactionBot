@@ -46,7 +46,8 @@ public:
   inline int next_turn() const { return (m_turn + 1) % m_players.size(); }
   ChainReaction nextState(Move move) const;
   bool is_win(std::string_view color) const;
-  std::string_view get_winner() const;
+  std::optional<std::string_view> get_winner() const;
+  std::vector<Move> legalMoves() const;
   std::vector<Move> legalMoves(std::string_view color) const;
   std::string_view get_player() const { return m_players[m_turn]; }
 

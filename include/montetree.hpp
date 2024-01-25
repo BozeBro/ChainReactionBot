@@ -12,8 +12,8 @@
 #include <utility>
 #include <vector>
 
-static constexpr double C = 2;
-static constexpr double D = 1;
+constexpr double C = 2;
+constexpr double D = 1;
 static int n = 0;
 
 // Rationale
@@ -140,7 +140,7 @@ public:
         leaf->backpropogate(leaf->simulate());
         continue;
       }
-      assert(leaf->m_select_score.has_value());
+      assert(leaf->get_select_score());
       assert(leaf->m_state.get_winner().empty());
       assert(leaf->m_children.size() == 0);
       leaf->expand();
@@ -156,11 +156,14 @@ public:
     }
     return;
   }
-  std::optional<double> get_score() const { return m_score; }
-  std::optional<double> get_select_score() const { return m_select_score; }
+  double get_score() const { return m_score; }
+  double get_select_score() const {
+    double simuls = static_cast<double>(m_num_simuls);
+    return m_score / simuls +
+           C * sqrt(log(m_parent.lock()->m_num_simuls) / simuls);
+  }
   Game get_state() const { return m_state; }
   void set_score(double score) { m_score = score; }
-  void set_select_score(double score) { m_select_score = score; }
 
 private:
   double generate_score() const {
@@ -184,23 +187,17 @@ private:
         ratio = std::min(ratio.value(), child->get_score().value());
     }
     return 1 - ratio.value();
-    // if (is_uninitialized(m_parent)) {
-    //   return wins / num_visit;
-    // }
-    // return wins / num_visit +
-    //        C * sqrt(log(m_parent.lock()->m_num_simuls) / num_visit);
   }
   double generate_select_score() const {
     if (is_uninitialized(m_parent)) {
-      assert(m_score.has_value());
-      return D * m_score.value();
+      return D * m_score;
     }
     double wins = static_cast<double>(m_wins);
     double num_visit = static_cast<double>(m_num_simuls);
     assert(num_visit > 0);
-    assert(m_score.has_value());
+    assert(m_score);
     double simul = log(m_parent.lock()->m_num_simuls);
-    return D * m_score.value() + C * sqrt(simul / num_visit);
+    return D * m_score + C * sqrt(simul / num_visit);
   }
 
   bool is_leaf() { return m_children.empty(); }
@@ -209,8 +206,7 @@ private:
   int m_num_simuls = 0;
   const Game m_state;
   std::weak_ptr<MonteTree> m_parent;
-  std::optional<double> m_select_score = std::nullopt;
-  std::optional<double> m_score = std::nullopt;
+  double m_score = 0;
   std::vector<std::shared_ptr<MonteTree>> m_children;
   int bt = 0;
 };

@@ -1,10 +1,14 @@
 
 #include "chainreaction.hpp"
-#include "montetree.hpp"
+#include "mcts.hpp"
 #include <cassert>
+#include <iostream>
 #include <queue>
+#include <string_view>
+#include <vector>
 
 int main(int argc, char *argv[]) {
+
   if (argc != 3) {
     std::cout << "Need to provide 2 arguements\n";
     return -1;
@@ -12,11 +16,17 @@ int main(int argc, char *argv[]) {
 
   int width = std::stoi(argv[1]);
   int height = std::stoi(argv[2]);
-  ChainReaction c(width, height, {"Blue", "Red"});
-  auto game = MonteTree<ChainReaction>::create(c);
-  game->run();
-  std::cout << game->get_score().value() << " "
-            << game->get_state().get_player() << '\n';
+  std::vector<std::string_view> players{"Red", "Blue"};
+  auto m = MCTS<ChainReaction>(nullptr, width, height, players);
+  ChainReaction c(width, height, players);
+
+  m.run();
+  print(&m);
+  std::cout << m << '\n';
+  std::cout << m.get_score() << '\n';
+
+  // std::cout << game->get_score().value() << " "
+  //           << game->get_state().get_player() << '\n';
   std::queue<ChainReaction> que;
   int rwin = 0;
   int bwin = 0;
@@ -31,8 +41,8 @@ int main(int argc, char *argv[]) {
       auto winner = nxt.is_win(top.get_player());
       assert(nxt.is_win(top.get_player()) ==
              (nxt.get_winner() == top.get_player()));
-      if (winner) {
-        if (top.get_player() == "Red") {
+      if (!nxt.get_winner().has_value()) {
+        if (nxt.get_winner() == "Red") {
           rwin++;
         } else {
           bwin++;
