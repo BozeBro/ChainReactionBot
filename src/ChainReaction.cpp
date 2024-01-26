@@ -58,14 +58,15 @@ void ChainReaction::append_if_explode(std::queue<int> &que,
 }
 bool ChainReaction::handle_sq(std::vector<State> &grid, int ind,
                               std::string_view color) const {
+  assert(ind >= 0);
   State &sq = grid[ind];
   sq.circles++;
   sq.color = color;
   if (ind == 0 || ind == m_grid.size() - 1 || ind == m_width - 1 ||
       ind == m_grid.size() - m_width) {
     return sq.circles < 2;
-  } else if (0 < ind && ind < m_width || ind % m_width == 0 ||
-             ind + m_width > m_grid.size()) {
+  } else if (ind > 0 && ind < m_width || ind % m_width == 0 ||
+             (ind + 1) % m_width == 0 || ind + m_width > m_grid.size()) {
     return sq.circles < 3;
   } else {
     return sq.circles < 4;
@@ -151,7 +152,7 @@ std::ostream &operator<<(std::ostream &stream, const State &state) {
 }
 
 std::ostream &operator<<(std::ostream &stream, const Move &move) {
-  stream << "(" << move.x << " " << move.y << ")";
+  stream << "(x " << move.x << ", y: " << move.y << ")";
   return stream;
 }
 

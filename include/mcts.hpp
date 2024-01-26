@@ -29,9 +29,6 @@ public:
   using M = typename std::decay_t<
       decltype(*std::declval<Game>().legalMoves().begin())>;
 
-  static_assert(std::is_const_v<decltype(std::declval<Game>().nextState(
-                    std::declval<M>()))>,
-                "Next state must return a const state");
   static_assert(
       std::is_same_v<const Game, decltype(std::declval<Game>().nextState(
                                      std::declval<M>()))>,
@@ -80,7 +77,7 @@ public:
     return stream;
   }
   void run() {
-    for (int i = 0; i < 10000 && !m_final_val.has_value(); i++) {
+    for (int i = 0; i < 1000 && !m_final_val.has_value(); i++) {
       auto leaf = selection();
       auto winner = leaf->simulate();
       leaf->backpropagate(winner);
@@ -231,6 +228,8 @@ public:
     }
     return move;
   }
+
+private:
   double get_score() const {
     double wins = static_cast<double>(m_score);
     double simuls = static_cast<double>(m_simuls);
@@ -258,13 +257,15 @@ private:
 
 template <typename Game> class MonteAgent {
   using Node = MCTS<Game>;
-  using M = typename std::decay_t<
-      decltype(*std::declval<Game>().legalMoves().begin())>;
+  using M = typename Node::M;
 
 public:
   MonteAgent(Node *agent) : m_agent(agent) {}
 
-  void move(M move) { m_agent = m_agent->play_move(move); }
+  void move(M move) {
+    m_agent = m_agent->play_move(move);
+    m_agent->run();
+  }
   typename Node::M get_move() { return m_agent->get_best(); }
 
 private:
