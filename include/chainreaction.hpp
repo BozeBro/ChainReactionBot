@@ -21,12 +21,10 @@ struct Move {
   int y;
   std::string_view color;
   friend std::ostream &operator<<(std::ostream &, const Move &);
+  friend bool operator==(const Move &a, const Move &b);
 };
-bool operator==(const Move &a, const Move &b);
 class ChainReaction {
 public:
-  friend std::ostream &operator<<(std::ostream &, const ChainReaction &);
-
   ChainReaction(int width, int height, std::vector<std::string_view> players,
                 int turn = 0, uint32_t cnt = 0,
                 std::optional<std::string_view> winner = std::nullopt)
@@ -41,9 +39,10 @@ public:
 
   ~ChainReaction() = default;
   ChainReaction(const ChainReaction &) = default;
+  friend std::ostream &operator<<(std::ostream &, const ChainReaction &);
 
 public:
-  inline int next_turn() const { return (m_turn + 1) % m_players.size(); }
+  int next_turn() const { return (m_turn + 1) % m_players.size(); }
   const ChainReaction nextState(Move move) const;
   bool is_win(std::string_view color) const;
   std::optional<std::string_view> get_winner() const;

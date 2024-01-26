@@ -32,7 +32,7 @@ public:
   static_assert(
       std::is_same_v<const Game, decltype(std::declval<Game>().nextState(
                                      std::declval<M>()))>,
-      "Next state must return a state with the same state as the caller");
+      "Next state must return a const state with the same type as the caller");
 
   template <typename... Args>
   MCTS(MCTS *parent, Args &&...args)
