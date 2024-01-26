@@ -47,35 +47,6 @@ public:
   }
 
 public:
-  friend void print(Node const *const tree) {
-    std::queue<Node const *> que;
-    que.push(tree);
-    while (!que.empty()) {
-      std::queue<Node const *> nxt;
-      std::cout << "********\n";
-      while (!que.empty()) {
-        Node const *top = que.front();
-        que.pop();
-        std::cout << (*top) << " ";
-        for (Node *child : top->m_children) {
-          nxt.push(child);
-        }
-      }
-      std::cout << "********\n";
-      que = nxt;
-    }
-  }
-
-  friend std::ostream &operator<<(std::ostream &stream,
-                                  const MCTS<Game> &tree) {
-
-    Game game = static_cast<Game>(tree);
-    stream << tree.get_score() << " " << tree.m_score << " "
-           << (tree.m_final_val.has_value() ? tree.m_final_val.value() : "NONE")
-           << " " << game.get_player() << "\n"
-           << game << '\n';
-    return stream;
-  }
   void run() {
     for (int i = 0; i < 1000 && !m_final_val.has_value(); i++) {
       auto leaf = selection();
@@ -142,7 +113,6 @@ private:
     if (this->is_final_state()) {
       return m_final_val.value();
     }
-    srand(time(NULL));
     std::random_device rand_dev;
     std::mt19937 generator(rand_dev());
     Game cur = static_cast<Game>(*this);
@@ -158,11 +128,10 @@ private:
   }
   void backpropagate(std::string_view winner) {
     for (MCTS *cur = this; cur != nullptr; cur = cur->m_parent) {
-      if (winner == "") {
-        continue;
+      if (winner != "") {
+        bool win_state = winner == cur->get_player();
+        cur->add_score(win_state ? 1 : -1);
       }
-      bool win_state = winner == cur->get_player();
-      cur->add_score(win_state ? 1 : -1);
       MCTS *parent = cur->m_parent;
       if (!parent)
         continue;
@@ -185,6 +154,37 @@ private:
         parent->set_final_val(tie ? "" : cur->get_final_val().value());
       }
     }
+  }
+
+public:
+  friend void print(Node const *const tree) {
+    std::queue<Node const *> que;
+    que.push(tree);
+    while (!que.empty()) {
+      std::queue<Node const *> nxt;
+      std::cout << "********\n";
+      while (!que.empty()) {
+        Node const *top = que.front();
+        que.pop();
+        std::cout << (*top) << " ";
+        for (Node *child : top->m_children) {
+          nxt.push(child);
+        }
+      }
+      std::cout << "********\n";
+      que = nxt;
+    }
+  }
+
+  friend std::ostream &operator<<(std::ostream &stream,
+                                  const MCTS<Game> &tree) {
+
+    Game game = static_cast<Game>(tree);
+    stream << tree.get_score() << " " << tree.m_score << " "
+           << (tree.m_final_val.has_value() ? tree.m_final_val.value() : "NONE")
+           << " " << game.get_player() << "\n"
+           << game << '\n';
+    return stream;
   }
 
 public:

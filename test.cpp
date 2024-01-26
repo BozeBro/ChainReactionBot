@@ -11,6 +11,7 @@ int main(int argc, char *argv[]) {
     std::cout << "Need to provide 2 arguements\n";
     return -1;
   }
+  srand(time(NULL));
 
   int width = std::stoi(argv[1]);
   int height = std::stoi(argv[2]);
