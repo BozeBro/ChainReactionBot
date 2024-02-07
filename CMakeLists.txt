@@ -20,13 +20,15 @@ if (Test)
   target_link_libraries(test PRIVATE chain)
 else()
   add_subdirectory(client)
+  add_subdirectory(game/chainreaction)
+  
   # add_executable(main test.cpp)
   add_executable(main main.cpp)
+  add_dependencies(main chain client)
 
-  add_subdirectory(bot)
-  add_dependencies(main bot client )
 
-  target_link_libraries(main PRIVATE bot client)
+  target_link_libraries(main PRIVATE chain client)
+  target_include_directories(main PRIVATE bot/include game/chainreaction/include)
 
   # add_dependencies(cli client)
   # target_link_libraries(cli PRIVATE client)

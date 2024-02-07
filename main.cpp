@@ -26,7 +26,7 @@
  */
 #include "chainreaction.hpp"
 #include "client.hpp"
-#include "mcts.hpp"
+#include "agent.hpp"
 
 #include <iostream>
 #include <memory>
@@ -45,20 +45,16 @@ class ChainGameClient {
 
 public:
   ChainGameClient(int width, int height, std::vector<std::string_view> players,
-                  const char *host, const char *id) {
-    m_gamebot = std::make_unique<AgentBot>(
-        new AgentTree(nullptr, width, height, players));
-    m_bot = std::make_unique<BotClient>(
-        host, id, [this](json srv_data) { return this->on_message(srv_data); });
-    std::cout << (m_gamebot->m_agent->is_final_state()) << '\n';
-  }
+                  const char *host, const char *id) 
+        : m_gamebot(std::make_unique<AgentBot>(nullptr, width, height, players))
+        , m_bot(std::make_unique<BotClient>(
+        host, id, [this](json srv_data) { return this->on_message(srv_data); })) 
+        {}
   void start() { m_bot->connect(); }
 
 private:
   Payload on_message(json srv_data) {
     const std::string data_type = srv_data[TYPE];
-    // const int x = srv_data[X];
-    // const int y = srv_data[Y];
     if (data_type == "color") {
       m_color = srv_data["color"];
     } else if (data_type == "update") {
