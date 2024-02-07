@@ -6,10 +6,11 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS 1)
 set(CMAKE_INSTALL_PREFIX ${CMAKE_BINARY_DIR})
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_BUILD_TYPE Debug)
-if (prod)
-  add_compile_definitions(PROD)
+
+if (secure)
+  add_compile_definitions(SECURE)
 else()
-  add_compile_definitions(DEBUG)
+  add_compile_definitions(INSECURE)
 endif()
 
 if (Test)
@@ -18,13 +19,15 @@ if (Test)
   add_dependencies(test chain)
   target_link_libraries(test PRIVATE chain)
 else()
-  add_executable(main test.cpp)
-  target_include_directories(main PRIVATE include/)
+  add_subdirectory(client)
+  # add_executable(main test.cpp)
+  add_executable(main main.cpp)
 
-  add_subdirectory(src)
-  add_dependencies(main chain)
+  add_subdirectory(bot)
+  add_dependencies(main bot client )
 
-  target_link_libraries(main chain)
+  target_link_libraries(main PRIVATE bot client)
+
+  # add_dependencies(cli client)
+  # target_link_libraries(cli PRIVATE client)
 endif()
-
-

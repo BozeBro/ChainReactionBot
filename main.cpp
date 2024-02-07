@@ -24,9 +24,85 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
  */
+#include "chainreaction.hpp"
 #include "client.hpp"
+#include "mcts.hpp"
 
 #include <iostream>
+#include <memory>
+#include <nlohmann/json.hpp>
+#include <string>
+#include <string_view>
+
+static constexpr char TYPE[] = "type";
+static constexpr char X[] = "x";
+static constexpr char Y[] = "y";
+
+// For now: Red == US, Blue == Enemy
+class ChainGameClient {
+  using AgentTree = MCTS<ChainReaction>;
+  using AgentBot = MonteAgent<ChainReaction>;
+
+public:
+  ChainGameClient(int width, int height, std::vector<std::string_view> players,
+                  const char *host, const char *id) {
+    m_gamebot = std::make_unique<AgentBot>(
+        new AgentTree(nullptr, width, height, players));
+    m_bot = std::make_unique<BotClient>(
+        host, id, [this](json srv_data) { return this->on_message(srv_data); });
+  }
+  void start() { m_bot->connect(); }
+
+private:
+  Payload on_message(json srv_data) {
+    const std::string data_type = srv_data[TYPE];
+    // const int x = srv_data[X];
+    // const int y = srv_data[Y];
+    if (data_type == "color") {
+      m_color = srv_data["color"];
+    } else if (data_type == "update") {
+      // TODO: handle when player leaves, and when handling the bot case
+    } else if (data_type == "start") {
+      m_turn = srv_data["turn"];
+      m_username = srv_data["username"];
+      if (m_turn == m_color) {
+        // get_move
+        m_gamebot->run();
+        json res;
+        auto move = m_gamebot->get_move();
+        res["x"] = move.x;
+        res["y"] = move.y;
+        res["type"] = "move";
+        return {res, true};
+      }
+    } else if (data_type == "winner") {
+      std::cout << "THERE IS A WINNER\n";
+    } else if (data_type == "move") {
+      const int x = srv_data[X];
+      const int y = srv_data[Y];
+      auto player = srv_data["color"] == m_color ? "Red" : "Blue";
+      m_gamebot->move({x, y});
+      m_turn = srv_data["turn"];
+      if (m_turn == m_color) {
+        m_gamebot->run();
+        json res;
+        auto move = m_gamebot->get_move();
+        res[X] = move.x;
+        res[Y] = move.y;
+        res["type"] = "move";
+        return {res, true};
+      }
+    }
+
+    return {srv_data, false};
+  }
+  std::unique_ptr<AgentBot> m_gamebot;
+  std::unique_ptr<BotClient> m_bot;
+  std::string m_color;
+  std::string m_turn;
+  std::string m_username;
+};
+
 int main(int argc, char *argv[]) {
 
   // Create a client endpoint
@@ -34,11 +110,10 @@ int main(int argc, char *argv[]) {
     std::cout << "Need 3 arguments, ./main host id";
     return 1;
   }
-  BotClient bot(argv[1], argv[2]);
-  try {
-    string err = bot.connect();
-    cout << err;
-  } catch (websocketpp::exception const &e) {
-    std::cout << e.what() << std::endl;
-  }
+
+  ChainGameClient bot(6, 9, {"Red", "Blue"}, argv[1], argv[2]);
+  bot.start();
+  // BotClient bot(argv[1], argv[2], [](json a) -> Payload { return {a,
+  // false}; }); std::string err = bot.connect();
+  // std::cout << err;
 }
