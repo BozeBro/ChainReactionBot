@@ -50,6 +50,7 @@ public:
         new AgentTree(nullptr, width, height, players));
     m_bot = std::make_unique<BotClient>(
         host, id, [this](json srv_data) { return this->on_message(srv_data); });
+    std::cout << (m_gamebot->m_agent->is_final_state()) << '\n';
   }
   void start() { m_bot->connect(); }
 
@@ -66,6 +67,8 @@ private:
       m_turn = srv_data["turn"];
       m_username = srv_data["username"];
       if (m_turn == m_color) {
+        m_game_color = "Red";
+        m_enemy_color = "Blue";
         // get_move
         m_gamebot->run();
         json res;
@@ -74,14 +77,17 @@ private:
         res["y"] = move.y;
         res["type"] = "move";
         return {res, true};
+      } else {
+        m_game_color = "Blue";
+        m_enemy_color = "Red";
       }
     } else if (data_type == "winner") {
       std::cout << "THERE IS A WINNER\n";
     } else if (data_type == "move") {
       const int x = srv_data[X];
       const int y = srv_data[Y];
-      auto player = srv_data["color"] == m_color ? "Red" : "Blue";
-      m_gamebot->move({x, y});
+      auto player = srv_data["color"] == m_color ? m_game_color : m_enemy_color;
+      m_gamebot->move({x, y, player});
       m_turn = srv_data["turn"];
       if (m_turn == m_color) {
         m_gamebot->run();
@@ -101,6 +107,8 @@ private:
   std::string m_color;
   std::string m_turn;
   std::string m_username;
+  std::string m_game_color;
+  std::string m_enemy_color;
 };
 
 int main(int argc, char *argv[]) {

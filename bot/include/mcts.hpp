@@ -50,12 +50,11 @@ public:
 
 public:
   void run() {
-    for (int i = 0; i < 1000 && !m_final_val.has_value(); i++) {
+    for (int i = 0; i < 1000 && !this->m_final_val.has_value(); i++) {
       auto leaf = selection();
       auto winner = leaf->simulate();
       leaf->backpropagate(winner);
     }
-    return;
   }
 
 private:
@@ -201,6 +200,7 @@ public:
         return expand(i);
       }
     }
+    assert(false);
     return nullptr;
   }
   M get_best() {
@@ -231,7 +231,7 @@ public:
     return move;
   }
 
-private:
+public:
   double get_score() const {
     double wins = static_cast<double>(m_score);
     double simuls = static_cast<double>(m_simuls);
@@ -267,6 +267,7 @@ public:
 
   void move(M move) {
     m_agent = m_agent->play_move(move);
+    assert(m_agent != nullptr);
     if (!m_running) {
       run();
     }
@@ -274,13 +275,14 @@ public:
   void run() {
     if (!m_running) {
       m_running = true;
+      std::cout << m_agent->is_final_state();
       m_agent->run();
       m_running = false;
     }
   }
   typename Node::M get_move() { return m_agent->get_best(); }
 
-private:
+public:
   bool m_running = false;
-  Node *m_agent;
+  Node *m_agent = nullptr;
 };
