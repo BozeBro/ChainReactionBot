@@ -37,7 +37,15 @@
 static constexpr char TYPE[] = "type";
 static constexpr char X[] = "x";
 static constexpr char Y[] = "y";
-
+static constexpr char RED[] = "Red";
+static constexpr char BLUE[] = "Blue";
+static constexpr char MOVE[] = "move";
+static constexpr char COLOR[] = "color";
+static constexpr char WINNER[] = "winner";
+static constexpr char USERNAME[] = "username";
+static constexpr char TURN[] = "turn";
+static constexpr char UPDATE[] = "update";
+static constexpr char START[] = "start";
 // For now: Red == US, Blue == Enemy
 class ChainGameClient {
   using AgentTree = MCTS<ChainReaction>;
@@ -55,43 +63,43 @@ public:
 private:
   Payload on_message(json srv_data) {
     const std::string data_type = srv_data[TYPE];
-    if (data_type == "color") {
-      m_color = srv_data["color"];
-    } else if (data_type == "update") {
+    if (data_type == COLOR) {
+      m_color = srv_data[COLOR];
+    } else if (data_type == UPDATE) {
       // TODO: handle when player leaves, and when handling the bot case
-    } else if (data_type == "start") {
-      m_turn = srv_data["turn"];
-      m_username = srv_data["username"];
+    } else if (data_type == START) {
+      m_turn = srv_data[TURN];
+      m_username = srv_data[USERNAME];
       if (m_turn == m_color) {
-        m_game_color = "Red";
-        m_enemy_color = "Blue";
+        m_game_color = RED;
+        m_enemy_color = BLUE;
         // get_move
         m_gamebot->run();
         json res;
-        auto move = m_gamebot->get_move();
-        res["x"] = move.x;
-        res["y"] = move.y;
-        res["type"] = "move";
+        Move move = m_gamebot->get_move();
+        res[X] = move.x;
+        res[Y] = move.y;
+        res[TYPE] = MOVE;
         return {res, true};
       } else {
-        m_game_color = "Blue";
-        m_enemy_color = "Red";
+        m_game_color = BLUE;
+        m_enemy_color = RED;
       }
-    } else if (data_type == "winner") {
+    } else if (data_type == WINNER) {
       std::cout << "THERE IS A WINNER\n";
-    } else if (data_type == "move") {
+    } else if (data_type == MOVE) {
       const int x = srv_data[X];
       const int y = srv_data[Y];
-      auto player = srv_data["color"] == m_color ? m_game_color : m_enemy_color;
+      auto player = srv_data[COLOR] == m_color ? m_game_color : m_enemy_color;
       m_gamebot->move({x, y, player});
-      m_turn = srv_data["turn"];
+      m_turn = srv_data[TURN];
       if (m_turn == m_color) {
         m_gamebot->run();
         json res;
-        auto move = m_gamebot->get_move();
+        Move move = m_gamebot->get_move();
         res[X] = move.x;
         res[Y] = move.y;
-        res["type"] = "move";
+        res[TYPE] = MOVE;
         return {res, true};
       }
     }
@@ -115,9 +123,6 @@ int main(int argc, char *argv[]) {
     return 1;
   }
 
-  ChainGameClient bot(6, 9, {"Red", "Blue"}, argv[1], argv[2]);
+  ChainGameClient bot(6, 9, {RED, BLUE}, argv[1], argv[2]);
   bot.start();
-  // BotClient bot(argv[1], argv[2], [](json a) -> Payload { return {a,
-  // false}; }); std::string err = bot.connect();
-  // std::cout << err;
 }

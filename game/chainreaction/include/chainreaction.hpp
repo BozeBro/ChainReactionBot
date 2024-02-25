@@ -25,6 +25,8 @@ struct Move {
 };
 class ChainReaction {
 public:
+  using Move = Move;
+  using State = State;
   ChainReaction(int width, int height, std::vector<std::string_view> players,
                 int turn = 0, uint32_t cnt = 0,
                 std::optional<std::string_view> winner = std::nullopt)

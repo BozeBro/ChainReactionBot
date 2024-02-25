@@ -26,8 +26,7 @@ template <typename Game> class MCTS : public Game {
 
 public:
   using Node = MCTS<Game>;
-  using M = typename std::decay_t<
-      decltype(*std::declval<Game>().legalMoves().begin())>;
+  using M = typename Game::Move;
 
   static_assert(
       std::is_same_v<const Game, decltype(std::declval<Game>().nextState(

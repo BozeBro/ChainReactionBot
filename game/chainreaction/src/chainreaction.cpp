@@ -10,7 +10,7 @@
 #include <vector>
 
 namespace util {
-bool is_win(std::vector<State> grid, std::string_view color) {
+bool is_win(const std::vector<State> &grid, std::string_view color) {
   int enemy_cnt = 0;
   int my_cnt = 0;
   for (const State &sq : grid) {
@@ -22,7 +22,7 @@ bool is_win(std::vector<State> grid, std::string_view color) {
   }
   return enemy_cnt == 0;
 }
-int count_circles(std::vector<State> grid) {
+int count_circles(const std::vector<State> &grid) {
   int cnt = 0;
   for (const State &sq : grid) {
     cnt += sq.circles;
